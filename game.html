@@ -3,382 +3,267 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Stage 1 — Mini Mario (Fahmi)</title>
+<title>Mini Mario-like Stage 1 (Fahmi)</title>
 <style>
-  :root{
-    --bg1:#9fd6ff; --bg2:#8cc8ff; --ui:#0b1220;
-  }
-  html,body{height:100%; margin:0; background:linear-gradient(var(--bg1),var(--bg2)); font-family:Inter,system-ui,Arial; -webkit-tap-highlight-color:transparent}
-  .wrap{width:min(1000px,98vw); margin:12px auto; background:#eaf6ff; border-radius:12px; box-shadow:0 18px 50px rgba(8,18,30,.12); overflow:hidden; position:relative}
-  header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--ui);color:#fff}
+  :root{--bg:#7ec0ee;--ground:#6aa84f;--ui:#0b1220}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;color:#111}
+  body{display:flex;align-items:center;justify-content:center;background:linear-gradient(#7ec0ee,#9fd6ff);padding:12px}
+  .wrap{width:min(980px,98vw);max-width:980px;background:linear-gradient(#eaf6ff,#dff5ff);border-radius:12px;box-shadow:0 20px 50px rgba(8,18,30,.15);overflow:hidden}
+  header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--ui);color:white}
   header .title{font-weight:700}
-  #gameCanvas{display:block; width:100%; height:520px; background:transparent}
-  .controls{display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,0.85);align-items:center}
+  #gameCanvas{display:block;background:linear-gradient(#92d3ff,#8cc8ff);width:100%;height:480px}
+  .controls{display:flex;gap:8px;align-items:center;padding:10px;background:#fff7;border-top:1px solid #0000}
   .btn{padding:8px 12px;border-radius:8px;border:0;background:#111;color:#fff;font-weight:700;cursor:pointer}
-  #hud {color:#111; font-weight:700}
-  /* Mobile joystick area */
-  .joystick {
-    position:absolute; left:16px; bottom:18px; width:120px; height:120px; border-radius:50%; display:grid; place-items:center;
-    background:rgba(255,255,255,0.06); z-index:60; touch-action:none;
-  }
-  .joy-base{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,0.04)}
-  .joy-knob{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.9); touch-action:none}
-  .touch-buttons { position:absolute; right:18px; bottom:18px; display:flex; flex-direction:column; gap:12px; z-index:60 }
-  .touch-btn{width:72px;height:72px;border-radius:16px;background:rgba(255,255,255,0.92);display:grid;place-items:center;font-weight:800; touch-action:none}
-  .overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:90}
-  .overlay .card{background:#fff;padding:18px;border-radius:12px;text-align:center;max-width:92%}
-  @media (max-width:520px){
-    #gameCanvas{height:420px}
-    .joystick{width:92px;height:92px}
-    .joy-base{width:64px;height:64px}
-    .joy-knob{width:30px;height:30px}
-    .touch-btn{width:60px;height:60px}
-  }
+  .hint{color:#333;font-size:13px}
+  /* mobile touch buttons */
+  .touchpad{position:absolute;bottom:18px;left:14px;display:flex;gap:6px}
+  .touchbtn{width:56px;height:56px;border-radius:12px;background:#ffffffcc;border:1px solid #00000010;display:grid;place-items:center;font-weight:800}
+  .touch-right{position:absolute;right:12px;bottom:18px}
 </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div class="title">Fahmi — Stage 1 (Mini Mario-like)</div>
-      <div style="display:flex;gap:12px;align-items:center">
-        <div id="hud">Score: 0</div>
-        <div id="lives" style="color:#fff;font-weight:700">Lives: 3</div>
+      <div class="title">Fahmi's Stage 1 — Mini Platformer</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div id="score">Score: 0</div>
+        <div id="lives">Lives: 3</div>
       </div>
     </header>
 
-    <canvas id="gameCanvas" width="960" height="520"></canvas>
+    <canvas id="gameCanvas" width="960" height="480"></canvas>
 
     <div class="controls">
-      <div class="hint">Controls: ← → (A/D), ↑/Space to jump. On mobile: joystick kiri + jump button kanan.</div>
-      <div style="display:flex;gap:8px">
+      <div class="hint">Controls: ← → or A/D to move, ↑ / W / Space to jump. On mobile use buttons.</div>
+      <div style="margin-left:auto">
         <button class="btn" id="restartBtn">Restart</button>
-        <button class="btn" id="muteBtn">Mute</button>
       </div>
     </div>
 
-    <!-- Mobile joystick left -->
-    <div class="joystick" id="joystick" aria-hidden="true">
-      <div class="joy-base" id="joyBase">
-        <div class="joy-knob" id="joyKnob"></div>
-      </div>
-    </div>
-
-    <!-- Right touch buttons -->
-    <div class="touch-buttons" id="touchButtons" aria-hidden="true">
-      <div class="touch-btn" id="touchJump">▲</div>
-      <div class="touch-btn" id="touchAction">★</div>
-    </div>
-
-    <!-- overlay for messages -->
-    <div class="overlay" id="overlay">
-      <div class="card" id="overlayCard"></div>
+    <!-- mobile touch -->
+    <div class="touchpad" id="touchpad" style="pointer-events:auto">
+      <div class="touchbtn" id="leftBtn">◀</div>
+      <div class="touchbtn" id="rightBtn">▶</div>
+      <div class="touchbtn" id="jumpBtn" style="width:56px">▲</div>
     </div>
   </div>
 
-  <!-- AUDIO: put your external music url here -->
-  <audio id="bgMusic" src="" preload="auto" loop></audio>
-
 <script>
-/* ============================
-  Mini Super-Mario-like Stage 1
-  - Uses external sprite URLs (change ASSETS below)
-  - canvas rendering, sprites, player facing flip
-  - coins (10 pts), enemy kill (100 pts)
-  - required >=90 pts to open 'next.html'
-  - mobile joystick + jump button
-  ============================ */
+/* ===========================
+   Mini Mario-like Stage 1
+   - Canvas game with tile map
+   - Player physics, collisions, enemies, coins, goal
+   - Simple scrolling camera
+   - Touch controls for mobile
+   =========================== */
 
-/* ====== ASSETS (change these URLs to sprite images you prefer) ======
- * NOTE: I intentionally leave these as placeholders so you can supply
- * your preferred sprite sheet URLs. If you have working sprite URLs,
- * paste them below. If left empty, the game will use simple fallback shapes.
-=====================================================================*/
-const ASSETS = {
-  // Example placeholders (replace with real sprite sheet URLs if you have them)
-  playerSprite: "", // e.g. "https://yourhost.com/mario-sprites.png"
-  goombaSprite: "", // e.g. "https://yourhost.com/goomba.png"
-  tilesSprite: ""   // e.g. "https://yourhost.com/tiles.png"
-};
-
-const MUSIC_URL = ""; // <-- paste external mp3 url here (be mindful of copyright)
-const MIN_SCORE_TO_OPEN_GIFT = 90;
-
-/* ====== Canvas setup ====== */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-/* ====== Game constants ====== */
-const TILE = 32;
-const ROWS = 12;
-const COLS = 200; // long level
-const GRAVITY = 1400;      // px/s^2
-const MOVE_SPEED = 220;    // px/s
-const JUMP_SPEED = 520;    // px/s
+// ---- Config / tiles ----
+const TILE = 32; // tile size (px)
+const GRAVITY = 1200; // px/s^2
+const MOVE_SPEED = 220; // px/s
+const JUMP_SPEED = 520; // initial jump velocity px/s
 
-/* ====== Game state ====== */
-let cameraX = 0;
-let score = 0;
-let lives = 3;
-let gameOver = false;
-let levelDone = false;
+// ---- Simple assets: We'll draw pixels / shapes. You can replace with images later ----
+const assets = {
+  // placeholder: create small offscreen canvases for sprites
+  player: makePlayerSprite(),
+  enemy: makeEnemySprite(),
+  coin: makeCoinSprite(),
+  gift: makeGiftSprite(),
+  tiles: makeTileSprites()
+};
 
-/* ====== Level tilemap ('.' empty, '#' ground, 'b' block, 'c' coin, 'e' enemy, 'g' goal) ====== */
-let level = Array.from({length: ROWS}, ()=>'.'.repeat(COLS).split(''));
-// base ground (bottom two rows)
-for(let x=0;x<COLS;x++){ level[ROWS-1][x] = '#'; level[ROWS-2][x] = '#'; }
+// ---- Level map: array of strings - '.' empty, '#' ground, 'b' block, 'e' enemy spawn, 'c' coin, 'g' gift/goal ----
+// Make a level longer than screen (wide)
+const levelRows = 12;
+const levelCols = 200; // long level: 200 tiles
+let level = Array.from({length: levelRows},()=>'.'.repeat(levelCols).split(''));
 
-// helper to place blocks/platforms
-function place(tx, ty, w, ch){
-  for(let x=tx;x<tx+w;x++) if(x>=0 && x<COLS && ty>=0 && ty<ROWS) level[ty][x] = ch;
+// helper: fill base ground at bottom 2 rows
+for(let x=0;x<levelCols;x++){
+  level[levelRows-1][x] = '#';
+  level[levelRows-2][x] = '#';
 }
-place(10,8,6,'b'); place(18,6,8,'b'); place(30,9,4,'b'); place(38,7,5,'b');
-place(48,6,8,'b'); place(60,9,5,'b'); place(72,7,6,'b'); place(88,8,7,'b');
-place(120,6,10,'b'); place(150,8,6,'b'); place(170,5,8,'b');
+// create some platforms & obstacles for variety
+function placeRect(tx, ty, w, h, ch){
+  for(let x=tx;x<tx+w;x++) for(let y=ty;y<ty+h;y++) if(x>=0 && x<levelCols && y>=0 && y<levelRows) level[y][x]=ch;
+}
+// platforms
+placeRect(10,8,6,1,'b');
+placeRect(18,6,8,1,'b');
+placeRect(30,9,4,1,'b');
+placeRect(38,7,5,1,'b');
+placeRect(48,6,8,1,'b');
+placeRect(60,9,5,1,'b');
+placeRect(72,7,6,1,'b');
+placeRect(88,8,7,1,'b');
+placeRect(120,6,10,1,'b');
+placeRect(150,8,6,1,'b');
+placeRect(170,5,8,1,'b');
 
-// place coins & enemies
-[['c',12,7],['c',20,5],['c',31,8],['c',39,6],['c',50,5],['c',61,8],['c',73,6],['c',89,7],['c',121,4],['c',151,7]].forEach(([ch,x,y])=> level[y][x]=ch);
-[['e',22,9],['e',55,9],['e',95,9],['e',160,9]].forEach(([,x,y])=> level[y][x]='e');
-for(let i=130;i<136;i++){ level[ROWS-1][i]='.'; level[ROWS-2][i]='.'; }
-level[ ROWS-3 ][ COLS-6 ] = 'g'; // goal near end
+// coins above some platforms
+[['c',12,7],['c',20,5],['c',31,8],['c',39,6],['c',50,5],['c',61,8],['c',73,6],['c',89,7],['c',121,4],['c',151,7]].forEach(([ch,x,y])=>{ level[y][x]=ch; });
 
-/* ====== Player state ====== */
+// enemies
+[['e',22,9],['e',55,9],['e',95,9],['e',160,9]].forEach(([,x,y])=>{ level[y][x]='e'; });
+
+// pit: carve ground away to make jumping challenge
+for(let i=130;i<136;i++){ level[levelRows-1][i]='.'; level[levelRows-2][i]='.'; }
+// place goal gift near end
+level[ levelRows-3 ][ levelCols-6 ] = 'g';
+
+// ---- Camera & Player state ----
+let cameraX = 0;
+const VIEW_W = W, VIEW_H = H;
+
 const player = {
-  x: TILE*2,
-  y: (ROWS-3)*TILE - 40,
+  x: TILE * 2,
+  y: (levelRows-3) * TILE - 64,
   w: 28, h: 40,
   vx: 0, vy: 0,
   onGround: false,
-  facing: 1, // 1 right, -1 left
-  anim: 0,
+  facing: 1,
+  anim: 0
 };
 
-/* ====== Entities scanned from level ====== */
-let enemies = [];
-let coins = [];
-let gift = { x: (COLS-6)*TILE, y: (ROWS-3)*TILE - 28, w:32, h:32, collected:false };
+let keys = {};
+let score = 0;
+let lives = 3;
+let gameOver = false;
+let levelFinished = false;
 
-function scanLevel(){
-  enemies = []; coins = [];
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
-      const ch = level[y][x];
-      if(ch === 'e'){ enemies.push({ x:x*TILE, y:y*TILE-28, w:28, h:28, dir:-1, spd:60, alive:true }); level[y][x]='.'; }
-      if(ch === 'c'){ coins.push({ x:x*TILE+8, y:y*TILE+8, w:16, h:16, got:false }); level[y][x]='.'; }
-    }
-  }
+// ---- Input handlers ----
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if([' ','arrowup','w'].includes(e.key.toLowerCase())) e.preventDefault(); });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// Touch buttons
+function bindTouch(id, key){
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); keys[key]=true; }, {passive:false});
+  el.addEventListener('touchend', e=>{ e.preventDefault(); keys[key]=false; }, {passive:false});
 }
-scanLevel();
+bindTouch('leftBtn','arrowleft');
+bindTouch('rightBtn','arrowright');
+bindTouch('jumpBtn','arrowup');
 
-/* ====== Asset loading (optional external images) ====== */
-const assets = { playerImg:null, goombaImg:null, tilesImg:null };
-let assetsLoaded = 0, assetsToLoad = 0;
-function loadAssets(){
-  const loadIf = (url, key) => {
-    if(!url) return Promise.resolve();
-    assetsToLoad++;
-    return new Promise((res)=> {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = ()=>{ assets[key]=img; assetsLoaded++; res(); };
-      img.onerror = ()=>{ console.warn('Failed to load', url); res(); };
-      img.src = url;
-    });
-  };
-  return Promise.all([
-    loadIf(ASSETS.playerSprite, 'playerImg'),
-    loadIf(ASSETS.goombaSprite, 'goombaImg'),
-    loadIf(ASSETS.tilesSprite, 'tilesImg')
-  ]);
-}
-
-/* ====== Audio setup ====== */
-const bgMusic = document.getElementById('bgMusic');
-if(MUSIC_URL) bgMusic.src = MUSIC_URL;
-let musicAllowed = false;
-window.addEventListener('load', async ()=>{
-  try { await bgMusic.play(); musicAllowed = true; } catch(_){ musicAllowed=false; bgMusic.pause(); bgMusic.currentTime=0; }
-});
-['pointerdown','touchstart','keydown','click'].forEach(ev => window.addEventListener(ev, ()=>{ if(!musicAllowed && MUSIC_URL) bgMusic.play().catch(()=>{}); }, {once:true}));
-
-document.getElementById('muteBtn').addEventListener('click', ()=>{
-  bgMusic.muted = !bgMusic.muted;
-  document.getElementById('muteBtn').innerText = bgMusic.muted ? 'Unmute' : 'Mute';
-});
-
-/* ====== Input (keyboard + mobile joystick) ====== */
-const keys = {};
-window.addEventListener('keydown', e=> { keys[e.key.toLowerCase()] = true; if([' ','arrowup','w'].includes(e.key.toLowerCase())) e.preventDefault(); });
-window.addEventListener('keyup', e=> { keys[e.key.toLowerCase()] = false; });
-
-/* Touch buttons handled via joystick below */
-const joyKnob = document.getElementById('joyKnob');
-const joyBase = document.getElementById('joyBase');
-let joystickState = { x:0, y:0, active:false };
-
-// joystick mechanics (drag knob)
-(function initJoystick(){
-  const baseRect = ()=> joyBase.getBoundingClientRect();
-  let max = 36;
-  function resetKnob(){ joyKnob.style.transform = `translate(0px,0px)`; joystickState.x = 0; joystickState.y = 0; }
-  function setKnob(dx,dy){
-    const rect = baseRect();
-    max = rect.width/2 - 4;
-    const nx = Math.max(-max, Math.min(max, dx));
-    const ny = Math.max(-max, Math.min(max, dy));
-    joyKnob.style.transform = `translate(${nx}px, ${ny}px)`;
-    joystickState.x = nx / max; joystickState.y = ny / max;
-  }
-  function start(ev){
-    joystickState.active = true; move(ev);
-    window.addEventListener('pointermove', move, {passive:false});
-    window.addEventListener('pointerup', end, {passive:false});
-  }
-  function move(e){
-    if(!joystickState.active) return;
-    e.preventDefault();
-    const p = e.touches ? e.touches[0] : e;
-    const rect = baseRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
-    setKnob(p.clientX - cx, p.clientY - cy);
-  }
-  function end(e){ joystickState.active=false; resetKnob(); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); }
-  joyBase.addEventListener('pointerdown', start, {passive:false});
-})();
-
-const btnJump = document.getElementById('touchJump');
-btnJump.addEventListener('pointerdown', e=>{ e.preventDefault(); keys['arrowup'] = true; });
-btnJump.addEventListener('pointerup', e=>{ e.preventDefault(); keys['arrowup'] = false; });
-
-/* Restart */
+// Restart
 document.getElementById('restartBtn').addEventListener('click', ()=> location.reload());
 
-/* ====== Game loop ====== */
-let last = performance.now();
-function loop(now){
-  const dt = Math.min(0.05, (now - last)/1000);
-  last = now;
-  update(dt);
-  render();
-  if(!gameOver) requestAnimationFrame(loop);
-}
-
-/* ====== Collision helpers ====== */
-function aabb(ix,iy,iw,ih, x,y,w,h){ return !(ix+iw <= x || x+w <= ix || iy+ih <= y || y+h <= iy); }
+// ---- Utility tile checking ----
 function tileAt(px,py){
-  const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
-  if(ty<0||ty>=ROWS||tx<0||tx>=COLS) return '.';
+  const tx = Math.floor(px / TILE);
+  const ty = Math.floor(py / TILE);
+  if(ty<0||ty>=levelRows||tx<0||tx>=levelCols) return '.';
   return level[ty][tx];
 }
+function setTile(tx,ty,val){ if(ty>=0&&ty<levelRows&&tx>=0&&tx<levelCols) level[ty][tx]=val; }
 
-/* ====== Physics & update ====== */
+// ---- Game loop ----
+let last = performance.now();
+function loop(now){
+  let dt = (now-last)/1000; if(dt>0.05) dt=0.05; last=now;
+  update(dt); render();
+  if(!gameOver) requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---- Update physics & logic ----
 function update(dt){
-  if(gameOver || levelDone) return;
+  if(gameOver || levelFinished) return;
 
-  // read inputs (keyboard + joystick)
-  const left = keys['arrowleft'] || keys['a'] || joystickState.x < -0.35;
-  const right = keys['arrowright'] || keys['d'] || joystickState.x > 0.35;
-  const up = keys['arrowup'] || keys['w'] || keys[' '];
+  // input
+  let left = keys['arrowleft'] || keys['a'];
+  let right = keys['arrowright'] || keys['d'];
+  let up = keys['arrowup'] || keys['w'] || keys[' '];
 
   // horizontal
   if(left){ player.vx = -MOVE_SPEED; player.facing = -1; }
   else if(right){ player.vx = MOVE_SPEED; player.facing = 1; }
-  else { player.vx = 0; }
+  else player.vx = 0;
 
   // jump
-  if(up && player.onGround){ player.vy = -JUMP_SPEED; player.onGround = false; }
+  if(up && player.onGround){
+    player.vy = -JUMP_SPEED;
+    player.onGround = false;
+  }
 
-  // gravity
+  // apply gravity
   player.vy += GRAVITY * dt;
 
   // integrate
   player.x += player.vx * dt;
   player.y += player.vy * dt;
 
-  // collisions with tiles
+  // collisions: tile-based AABB collision resolution
+  player.onGround = false;
+  // clamp within level horizontal bounds
+  if(player.x < 0) player.x = 0;
+  // check vertical collisions with tiles
   resolveTileCollisions(player);
 
-  // enemies move & collision
-  enemies.forEach(e => {
-    if(!e.alive) return;
-    e.x += e.spd * e.dir * dt;
-    // basic turn-around on edges or tile ahead
-    const ahead = tileAt(e.x + (e.dir>0? e.w+2 : -2), e.y + e.h/2);
-    if(ahead === '#' || ahead === 'b') e.dir *= -1;
-    // if no tile below, fall
-    const below = tileAt(e.x + e.w/2, e.y + e.h + 2);
-    if(below === '.') e.y += 60 * dt;
+  // enemy collisions & coin pickup & goal
+  checkEntities();
 
-    // collision with player
-    if(aabb(player.x,player.y,player.w,player.h, e.x,e.y,e.w,e.h)){
-      // if player is falling onto enemy -> stomp
-      if(player.vy > 0 && (player.y + player.h) - e.y < 18){
-        e.alive = false; score += 100; player.vy = -JUMP_SPEED * 0.4;
-      } else {
-        // player hit -> lose life
-        loseLife();
-      }
-    }
-  });
+  // camera: center on player but clamp
+  cameraX = Math.floor(player.x - VIEW_W/3);
+  cameraX = Math.max(0, Math.min(cameraX, levelCols*TILE - VIEW_W));
 
-  // coins pickup
-  coins.forEach(c=>{
-    if(!c.got && aabb(player.x,player.y,player.w,player.h, c.x,c.y,c.w,c.h)){
-      c.got = true; score += 10;
-    }
-  });
+  // update UI
+  document.getElementById('score').innerText = 'Score: '+score;
+  document.getElementById('lives').innerText = 'Lives: '+lives;
 
-  // gift / goal
-  if(!gift.collected && aabb(player.x,player.y,player.w,player.h, gift.x,gift.y,gift.w,gift.h)){
-    if(score >= MIN_SCORE_TO_OPEN_GIFT){
-      gift.collected = true; levelDone = true;
-      showOverlay(`<strong>🎉 Selamat Fahmi!</strong><br>Kamu punya ${score} poin. Buka halaman berikut untuk stage selanjutnya.<br><br><a id="nextLink" href="next.html" style="display:inline-block;padding:10px 14px;background:#111;color:#fff;border-radius:8px;text-decoration:none">Lanjut ke Stage 2</a>`);
-    } else {
-      // not enough score
-      showOverlay(`<strong>Skor Kurang</strong><br>Kamu butuh minimal ${MIN_SCORE_TO_OPEN_GIFT} poin untuk membuka kado.<br>Skormu: ${score}<br><br><button id="btnRestart" style="padding:10px 12px;background:#111;color:#fff;border-radius:8px">Restart</button>`);
-      gameOver = true;
-      setTimeout(()=>{ document.getElementById('btnRestart').addEventListener('click', ()=> location.reload()); }, 40);
-    }
+  // if player falls below screen -> lose life / respawn
+  if(player.y > levelRows * TILE + 200){
+    loseLife();
   }
-
-  // clamp & camera
-  if(player.x < 0) player.x = 0;
-  const levelPixelW = COLS * TILE;
-  cameraX = Math.max(0, Math.min(player.x - W/3, levelPixelW - W));
-
-  // update HUD
-  document.getElementById('hud').innerText = `Score: ${score}`;
-  document.getElementById('lives').innerText = `Lives: ${lives}`;
 }
 
-/* resolve collisions of entity with solid tiles ('#' or 'b') */
+// resolve collisions with solid tiles ('#' and 'b')
 function resolveTileCollisions(ent){
-  ent.onGround = false;
-  // compute bounding tiles to check
-  const left = Math.floor(ent.x / TILE), right = Math.floor((ent.x + ent.w) / TILE);
-  const top = Math.floor(ent.y / TILE), bottom = Math.floor((ent.y + ent.h) / TILE);
+  // sample a small rectangle of possible colliding tiles
+  const left = Math.floor((ent.x) / TILE);
+  const right = Math.floor((ent.x + ent.w) / TILE);
+  const top = Math.floor((ent.y) / TILE);
+  const bottom = Math.floor((ent.y + ent.h) / TILE);
+
+  // iterate tiles overlapping bounding box
   for(let ty=top; ty<=bottom; ty++){
     for(let tx=left; tx<=right; tx++){
-      if(tx<0||tx>=COLS||ty<0||ty>=ROWS) continue;
+      if(tx<0||ty<0||tx>=levelCols||ty>=levelRows) continue;
       const ch = level[ty][tx];
       if(ch === '#' || ch === 'b'){
-        const rx = tx * TILE, ry = ty * TILE, rw = TILE, rh = TILE;
-        if(aabb(ent.x, ent.y, ent.w, ent.h, rx, ry, rw, rh)){
-          // compute overlaps
-          const ox1 = (ent.x + ent.w) - rx;
-          const ox2 = (rx + rw) - ent.x;
-          const oy1 = (ent.y + ent.h) - ry;
-          const oy2 = (ry + rh) - ent.y;
-          const minX = Math.min(ox1, ox2), minY = Math.min(oy1, oy2);
+        // tile rectangle
+        const rx = tx*TILE, ry = ty*TILE, rw = TILE, rh = TILE;
+        if(aabbIntersect(ent.x, ent.y, ent.w, ent.h, rx, ry, rw, rh)){
+          // calculate overlap on x and y
+          const overlapX1 = (ent.x + ent.w) - rx; // from left
+          const overlapX2 = (rx + rw) - ent.x; // from right
+          const overlapY1 = (ent.y + ent.h) - ry; // from top
+          const overlapY2 = (ry + rh) - ent.y; // from bottom
+          // pick smallest penetration
+          const minX = Math.min(overlapX1, overlapX2);
+          const minY = Math.min(overlapY1, overlapY2);
           if(minX < minY){
-            // horizontal push
-            if(ox1 < ox2) ent.x -= ox1; else ent.x += ox2;
+            // push horizontally
+            if(overlapX1 < overlapX2){
+              ent.x -= overlapX1;
+            } else {
+              ent.x += overlapX2;
+            }
             ent.vx = 0;
           } else {
-            // vertical push
-            if(oy1 < oy2){
-              ent.y -= oy1; ent.vy = 0; ent.onGround = true;
+            // push vertically
+            if(overlapY1 < overlapY2){
+              ent.y -= overlapY1;
+              ent.vy = 0;
+              ent.onGround = true;
             } else {
-              ent.y += oy2; ent.vy = 0;
+              ent.y += overlapY2;
+              ent.vy = 0;
             }
           }
         }
@@ -386,187 +271,247 @@ function resolveTileCollisions(ent){
     }
   }
 }
+function aabbIntersect(x1,y1,w1,h1,x2,y2,w2,h2){
+  return !(x1+w1 <= x2 || x2+w2 <= x1 || y1+h1 <= y2 || y2+h2 <= y1);
+}
 
-/* lose life */
-function loseLife(){
-  lives--;
-  if(lives <= 0){
-    gameOver = true;
-    showOverlay(`<strong>Game Over</strong><br>Kamu kehabisan nyawa.<br><br><button id="btnRestart2" style="padding:10px 12px;background:#111;color:#fff;border-radius:8px">Restart</button>`);
-    setTimeout(()=>{ document.getElementById('btnRestart2').addEventListener('click', ()=> location.reload()); }, 40);
-  } else {
-    // respawn
-    player.x = TILE*2; player.y = (ROWS-3)*TILE - player.h; player.vx = 0; player.vy = 0;
+// ---- Entities: enemies & coins & gift ----
+let enemies = [];
+let coins = [];
+let gift = {x: (levelCols-6)*TILE, y:(levelRows-3)*TILE - 28, w:32,h:32, collected:false};
+
+// populate enemies & coins by scanning level map
+function scanLevelForEntities(){
+  enemies = []; coins = [];
+  for(let y=0;y<levelRows;y++){
+    for(let x=0;x<levelCols;x++){
+      const ch = level[y][x];
+      if(ch === 'e'){
+        enemies.push({x:x*TILE,y:y*TILE- (32),w:28,h:28,dir:-1,spd:60,alive:true});
+        level[y][x]='.'; // clear tile so enemy not treated as tile
+      } else if(ch === 'c'){
+        coins.push({x:x*TILE+8,y:y*TILE+8,w:16,h:16,got:false});
+        level[y][x]='.';
+      } else if(ch === 'g'){
+        // already placed gift
+        level[y][x]='.';
+      }
+    }
+  }
+}
+scanLevelForEntities();
+
+// update entities and check collisions with player
+function checkEntities(){
+  // move enemies
+  enemies.forEach(en => {
+    if(!en.alive) return;
+    en.x += en.spd * en.dir * (1/60);
+    // simple collision with ground tiles (reverse if bump)
+    const belowTile = tileAt(en.x + en.w/2, en.y + en.h + 2);
+    if(belowTile === '.') {
+      // fall
+      en.y += 2;
+    }
+    // reverse if hit a solid tile ahead
+    const ahead = tileAt(en.x + (en.dir>0?en.w+2:-4), en.y + en.h/2);
+    if(ahead === '#' || ahead === 'b') en.dir *= -1;
+    // check player collision
+    if(aabbIntersect(player.x,player.y,player.w,player.h, en.x,en.y,en.w,en.h)){
+      // if player falling onto enemy -> kill enemy
+      if(player.vy > 0 && (player.y + player.h) - en.y < 18){
+        en.alive = false;
+        score += 100;
+        player.vy = -JUMP_SPEED*0.5; // bounce
+      } else {
+        // hit player -> lose life
+        loseLife();
+      }
+    }
+  });
+
+  // coins pickup
+  coins.forEach(c => {
+    if(!c.got && aabbIntersect(player.x,player.y,player.w,player.h, c.x,c.y,c.w,c.h)){
+      c.got = true; score += 10;
+    }
+  });
+
+  // gift / goal
+  if(!gift.collected && aabbIntersect(player.x,player.y,player.w,player.h, gift.x,gift.y,gift.w,gift.h)){
+    gift.collected = true;
+    levelFinished = true;
+    // show win overlay
+    setTimeout(()=> {
+      showWin();
+    }, 200);
   }
 }
 
-/* ====== Rendering ====== */
+// lose life handler
+function loseLife(){
+  lives--;
+  if(lives<=0){
+    gameOver = true;
+    showGameOver();
+  } else {
+    // respawn player near start
+    player.x = TILE*2; player.y = (levelRows-3)*TILE - player.h; player.vx=0; player.vy=0;
+  }
+}
+
+// ---- Rendering ----
 function render(){
+  // clear
   ctx.clearRect(0,0,W,H);
 
-  // background sky
+  // sky gradient background
   const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0, '#9fd6ff'); g.addColorStop(1, '#8cc8ff'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  g.addColorStop(0,'#9fd6ff'); g.addColorStop(1,'#8cc8ff');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
 
-  // tiles: draw visible columns
-  const startCol = Math.floor(cameraX / TILE), endCol = Math.min(COLS-1, Math.ceil((cameraX + W) / TILE));
-  for(let y=0;y<ROWS;y++){
-    for(let x=startCol;x<=endCol;x++){
+  // draw tiles (only visible area)
+  const startCol = Math.floor(cameraX / TILE);
+  const endCol = Math.ceil((cameraX + VIEW_W) / TILE);
+  for(let y=0;y<levelRows;y++){
+    for(let x=startCol; x<endCol; x++){
+      if(x<0||x>=levelCols) continue;
       const ch = level[y][x];
-      const sx = x * TILE - cameraX, sy = y * TILE;
+      const screenX = x*TILE - cameraX;
+      const screenY = y*TILE;
       if(ch === '#'){
-        drawTile(sx, sy, 'ground');
+        drawTile(screenX, screenY, 'ground');
       } else if(ch === 'b'){
-        drawTile(sx, sy, 'brick');
+        drawTile(screenX, screenY, 'brick');
       }
     }
   }
 
-  // coins
-  coins.forEach(c => {
-    if(!c.got) drawCoin(c.x - cameraX, c.y, c.w, c.h);
+  // draw coins
+  coins.forEach(c=>{
+    if(!c.got) drawSprite(assets.coin, c.x - cameraX, c.y, c.w, c.h);
   });
 
-  // enemies
-  enemies.forEach(e => {
-    if(e.alive) drawEntity(e.x - cameraX, e.y, e.w, e.h, 'goomba', e);
+  // draw enemies
+  enemies.forEach(en=>{
+    if(!en.alive) return;
+    drawSprite(assets.enemy, en.x - cameraX, en.y, en.w, en.h);
   });
 
-  // gift
-  if(!gift.collected) drawEntity(gift.x - cameraX, gift.y, gift.w, gift.h, 'gift');
+  // draw gift
+  if(!gift.collected) drawSprite(assets.gift, gift.x - cameraX, gift.y, gift.w, gift.h);
 
-  // player: draw with flip depending on facing
-  drawPlayer(player.x - cameraX, player.y, player.w, player.h, player.facing);
-
-  // optional: HUD overlay small
-}
-
-/* draw placeholder tile / or image if loaded */
-function drawTile(x,y,type){
-  if(assets.tilesImg){
-    // Simple: draw entire tiles image scaled to TILE size (assumes single tile)
-    ctx.drawImage(assets.tilesImg, 0, 0, assets.tilesImg.width, assets.tilesImg.height, Math.round(x), Math.round(y), TILE, TILE);
-  } else {
-    if(type==='ground'){ ctx.fillStyle = '#5aa64a'; ctx.fillRect(x,y,TILE,TILE); ctx.fillStyle='#4a8b3b'; ctx.fillRect(x,y+TILE-8,TILE,8);}
-    else { ctx.fillStyle = '#b5651d'; ctx.fillRect(x,y,TILE,TILE); ctx.fillStyle='#9a4e14'; ctx.fillRect(x+4,y+6,6,6); }
-  }
-}
-
-/* draw coin */
-function drawCoin(x,y,w,h){
-  ctx.save(); ctx.beginPath(); ctx.fillStyle = '#ffd700'; ctx.arc(Math.round(x+6), Math.round(y+6), 6, 0, Math.PI*2); ctx.fill(); ctx.restore();
-}
-
-/* draw entities (goomba/gift) */
-function drawEntity(x,y,w,h,type, meta){
-  if(type === 'goomba' && assets.goombaImg){
-    ctx.drawImage(assets.goombaImg, 0, 0, assets.goombaImg.width, assets.goombaImg.height, Math.round(x), Math.round(y), w, h);
-  } else if(type === 'gift'){
-    // simple gift
-    ctx.fillStyle = '#b22222'; ctx.fillRect(Math.round(x), Math.round(y), w, h);
-    ctx.fillStyle = '#ffd700'; ctx.fillRect(Math.round(x + w/2 - 3), Math.round(y), 6, h); ctx.fillRect(Math.round(x), Math.round(y + h/2 - 3), w, 6);
-  } else {
-    // fallback goomba box
-    ctx.fillStyle = type === 'goomba' ? '#8b0000' : '#7b2b2b'; ctx.fillRect(Math.round(x), Math.round(y), w, h);
-  }
-}
-
-/* draw player with facing flip */
-function drawPlayer(x,y,w,h,facing){
-  // draw name above
-  ctx.font = 'bold 14px Arial';
-  ctx.fillStyle = 'white'; ctx.strokeStyle = '#0008'; ctx.lineWidth = 2;
+  // draw player (with name above)
+  // name
+  ctx.font = 'bold 16px Arial';
+  ctx.fillStyle = 'white';
+  ctx.strokeStyle = '#0008';
+  ctx.lineWidth = 2;
   const name = 'Fahmi';
-  const tx = Math.round(x + w/2 - ctx.measureText(name).width/2);
-  ctx.strokeText(name, tx, Math.round(y - 8)); ctx.fillText(name, tx, Math.round(y - 8));
+  const px = player.x - cameraX + player.w/2;
+  ctx.strokeText(name, px - ctx.measureText(name).width/2, player.y - 10);
+  ctx.fillText(name, px - ctx.measureText(name).width/2, player.y - 10);
 
-  if(assets.playerImg){
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    if(facing === -1){
-      // flip horizontally around center x + w/2
-      ctx.translate(Math.round(x + w/2), 0);
-      ctx.scale(-1,1);
-      ctx.drawImage(assets.playerImg, 0, 0, assets.playerImg.width, assets.playerImg.height, -Math.round(w/2), Math.round(y), w, h);
-      ctx.restore();
-    } else {
-      ctx.drawImage(assets.playerImg, 0, 0, assets.playerImg.width, assets.playerImg.height, Math.round(x), Math.round(y), w, h);
-    }
-  } else {
-    // fallback simple pixel person: head + body
-    ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x + w/2 - 6), Math.round(y), 12, 12); // head
-    ctx.fillStyle = '#2b6fb4'; ctx.fillRect(Math.round(x + 4), Math.round(y + 12), w - 8, h - 18); // body
-    // face indicator
-    ctx.fillStyle = '#000';
-    if(facing === 1) ctx.fillRect(Math.round(x + w - 8), Math.round(y + 6), 3, 2);
-    else ctx.fillRect(Math.round(x + 5), Math.round(y + 6), 3, 2);
+  // player sprite
+  drawSprite(assets.player, player.x - cameraX, player.y, player.w, player.h);
+
+  // UI: lives / score are in DOM header, optionally can draw minimap etc.
+}
+
+// helper draw sprite (assets are canvases)
+function drawSprite(sprite, x, y, w, h){
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sprite, 0, 0, sprite.width, sprite.height, Math.round(x), Math.round(y), w, h);
+}
+
+// simple tile drawing using assets.tiles
+function drawTile(x,y,type){
+  if(type === 'ground'){
+    ctx.drawImage(assets.tiles.ground, x, y, TILE, TILE);
+  } else if(type === 'brick'){
+    ctx.drawImage(assets.tiles.brick, x, y, TILE, TILE);
   }
 }
 
-/* ====== Game setup: scan and start loop after assets load ====== */
-function init(){
-  // create coin list from scan
-  // coins already in 'coins' array replaced by scanLevel
-  // but we built coins earlier via scanLevel() -> coins[] set
-  // ensure enemies exist (already in scanLevel)
-  // if assets specified, load them
-  loadAssets().then(()=> {
-    // if assets didn't set images, game uses fallback shapes
-    // start loop
-    last = performance.now();
-    requestAnimationFrame(loop);
-  });
+// ---- UI overlays ----
+function showGameOver(){
+  // big overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 36px Arial';
+  ctx.fillText('Game Over', W/2 - 100, H/2 - 10);
+  ctx.font = '20px Arial';
+  ctx.fillText('Refresh untuk coba lagi', W/2 - 110, H/2 + 24);
+}
+function showWin(){
+  // overlay celebration
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 32px Arial';
+  ctx.fillText('🎉 Selamat Fahmi! Kamu menang!', W/2 - 220, H/2 - 10);
+  ctx.font = '20px Arial';
+  ctx.fillText('Kado menantimu di ujung. Tekan Restart untuk main lagi.', W/2 - 260, H/2 + 28);
 }
 
-/* ====== Build coins array from scanLevel() (we already did above) ====== */
-function prepareCoins(){
-  // coins array already built by scanLevel -> coins variable
+// ---- Helper: make placeholder pixel sprites as canvases (so no external files) ----
+function makePlayerSprite(){
+  const c = document.createElement('canvas'); c.width=16; c.height=24; const r = c.getContext('2d');
+  r.imageSmoothingEnabled=false;
+  // draw a simple pixel person (head, body, legs)
+  // head
+  r.fillStyle='#f1c27d'; r.fillRect(6,0,4,4);
+  // hat/hair
+  r.fillStyle='#111'; r.fillRect(5,0,6,2);
+  // body
+  r.fillStyle='#2b6fb4'; r.fillRect(4,4,8,9);
+  // left arm
+  r.fillStyle='#2b6fb4'; r.fillRect(2,6,3,4);
+  // legs
+  r.fillStyle='#2b2b2b'; r.fillRect(4,13,3,7); r.fillRect(9,13,3,7);
+  return c;
 }
-prepareCoins();
-
-/* scanLevel already populated enemies & coins; but ensure enemy array uses behavior */
-function ensureEntities(){
-  // already done
+function makeEnemySprite(){
+  const c = document.createElement('canvas'); c.width=16; c.height=16; const r = c.getContext('2d');
+  r.fillStyle='#8b0000'; r.fillRect(0,6,16,8); r.fillStyle='#000'; r.fillRect(2,2,4,2); r.fillRect(10,2,4,2);
+  return c;
 }
-ensureEntities();
-
-/* Start game */
-init();
-
-/* ====== Helper: show overlay message ====== */
-function showOverlay(html){
-  const ov = document.getElementById('overlay'), card = document.getElementById('overlayCard');
-  card.innerHTML = html; ov.style.display = 'flex';
+function makeCoinSprite(){
+  const c = document.createElement('canvas'); c.width=12; c.height=12; const r=c.getContext('2d');
+  r.beginPath(); r.fillStyle='#ffd700'; r.arc(6,6,5,0,Math.PI*2); r.fill(); return c;
 }
-
-/* hide overlay */
-function hideOverlay(){ document.getElementById('overlay').style.display = 'none'; }
-
-/* ====== small utility: when reaching end (levelDone) we stop loop through levelDone flag === true ====== */
-
-/* ====== Create coins & enemies arrays from earlier scan (we used scanLevel which filled them) ====== */
-/* Note: For clarity we kept scanLevel() earlier which filled enemies[] and coins[] */
-
-/* ====== ensure coins variable exists referencing coins scanned earlier ====== */
-if(typeof coins === 'undefined') coins = []; // safety
-
-/* add missing default coin object if none loaded (fallback) */
-if(coins.length === 0){
-  // put some fallback coins so game is playable
-  for(let i=0;i<12;i++) coins.push({ x: (i+4)*TILE + 8, y: (ROWS-4)*TILE + 8, w:16, h:16, got:false });
+function makeGiftSprite(){
+  const c = document.createElement('canvas'); c.width=20; c.height=20; const r=c.getContext('2d');
+  // box
+  r.fillStyle='#b22222'; r.fillRect(2,6,16,12);
+  // ribbon vertical
+  r.fillStyle='#ffd700'; r.fillRect(9,6,3,12);
+  // ribbon horizontal
+  r.fillRect(2,12,16,3);
+  return c;
 }
-
-/* ensure enemies exist */
-if(enemies.length === 0){
-  enemies.push({ x: 22*TILE, y: 9*TILE - 28, w:28, h:28, dir:-1, spd:60, alive:true});
-  enemies.push({ x: 55*TILE, y: 9*TILE - 28, w:28, h:28, dir:-1, spd:60, alive:true});
+function makeTileSprites(){
+  const tiles = {ground: null, brick: null};
+  // ground tile
+  const g = document.createElement('canvas'); g.width=TILE; g.height=TILE; const gr=g.getContext('2d');
+  // green dirt block with top highlight
+  gr.fillStyle='#5aa64a'; gr.fillRect(0,0,TILE,TILE);
+  gr.fillStyle='#4a8b3b'; gr.fillRect(0,TILE-8,TILE,8);
+  tiles.ground=g;
+  // brick
+  const b = document.createElement('canvas'); b.width=TILE; b.height=TILE; const br=b.getContext('2d');
+  br.fillStyle='#b5651d'; br.fillRect(0,0,TILE,TILE);
+  br.fillStyle='#9a4e14'; for(let i=0;i<3;i++) br.fillRect(2+i*10,6,6,6);
+  tiles.brick=b;
+  return tiles;
 }
 
-/* begin: collision / update note: for simplicity we run loop even if assets not loaded */
-
-/* start music on first user interaction if needed */
-window.addEventListener('click', ()=> { if(MUSIC_URL && !bgMusic.paused) return; if(MUSIC_URL) bgMusic.play().catch(()=>{}); }, {once:true});
-
+/* ===========================
+   Notes:
+   - To replace sprites with PNGs: create Image(), set src, and use ctx.drawImage(image,...).
+   - Level is tile-based; you can edit 'level' variable or helper placeRect to design custom stage.
+   =========================== */
 </script>
 </body>
 </html>
